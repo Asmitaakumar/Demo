@@ -3,7 +3,7 @@
 #################################################################
 #  Load secrets (don't commit this file to GitHub)
 #################################################################
-source /home/rundeck/secrets/env_vars
+source /etc/rundeck/secrets/env_vars
 
 #################################################################
 #  Define constants and derived values
