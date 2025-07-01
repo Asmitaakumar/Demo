@@ -71,7 +71,7 @@ SLACK_MESSAGE=$(cat <<EOF
 *RunDeck URL:* <$RD_JOB_URL|Click here>
 EOF
 )
-
+echo "Webhook URL is: $SLACK_WEBHOOK_URL"
 curl -X POST -H 'Content-type: application/json' --data "{
     \"text\": \"$SLACK_MESSAGE\"
 }" "$SLACK_WEBHOOK_URL"
