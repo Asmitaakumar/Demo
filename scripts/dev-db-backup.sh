@@ -1,13 +1,9 @@
 #!/bin/bash
 
-#################################################################
-#  Load secrets for Dev
-#################################################################
-source /etc/rundeck/secrets/dev/env_vars
+# Load secrets
+source /etc/rundeck/secrets/dev_env_vars
 
-#################################################################
-#  Define constants and derived values
-#################################################################
+# Define constants
 FILESTOKEEP=168
 BACKUP_DIR=/home/rundeck/devlogs
 AWS_BACKUP=s3://pnlp-prod-backup-confidential/Dev/Dev-MySQL-Backup/
@@ -15,41 +11,26 @@ DATE=$(date +"%Y-%m-%d")
 databases=dev_pharma
 ENVIRONMENT="Dev"
 KIND="MySQL"
-ALERT_NAME="${RD_JOB_NAME:-Daily MySQL Backup}"
-RESOURCE_NAME="pnlp-uat-rds-confidential"
-RD_JOB_URL="${RD_JOB_URL:-http://rundeck.example.com/job/DEV_JOB_ID}"
+ALERT_NAME="${RD_JOB_NAME:-Daily MySQL Dev Backup}"
+RESOURCE_NAME="pnlp-dev-rds-confidential"
+RD_JOB_URL="${RD_JOB_URL:-http://rundeck.example.com/job/YOUR_JOB_ID}"
 
 start_time=$(date +%s)
 
-#################################################################
-#  Ensure backup directory exists
-#################################################################
 mkdir -p "$BACKUP_DIR"
 
-#################################################################
-#  Create MySQL backup
-#################################################################
 for db in ${databases}; do
     mysqldump --port=3306 --host=$MYSQL_HOST --user=$MYSQL_USER -p$MYSQL_PWD --no-create-db --routines "$db" | gzip > "$BACKUP_DIR/$db@$DATE.sql.gz"
     BACKUP_STATUS=$?
 done
 
-#################################################################
-#  Upload to S3
-#################################################################
 for db in ${databases}; do
     aws s3 cp "$BACKUP_DIR/$db@$DATE.sql.gz" "$AWS_BACKUP"
     S3_STATUS=$?
 done
 
-#################################################################
-#  Cleanup old backups
-#################################################################
 find "$BACKUP_DIR/" -type f -ctime +7 -name '*.sql.gz' -execdir rm -- {} \;
 
-#################################################################
-#  Duration & size
-#################################################################
 end_time=$(date +%s)
 duration=$((end_time - start_time))
 duration_formatted=$(printf '%d minutes %d seconds' $((duration/60)) $((duration%60)))
@@ -57,18 +38,12 @@ backup_file="$BACKUP_DIR/$db@$DATE.sql.gz"
 backup_size=$(du -h "$backup_file" | cut -f1)
 timestamp=$(date -u '+%Y-%m-%d %H:%M UTC')
 
-#################################################################
-#  Status
-#################################################################
 if [ $BACKUP_STATUS -eq 0 ] && [ $S3_STATUS -eq 0 ]; then
     STATUS=":white_check_mark: Success"
 else
     STATUS=":x: Failure"
 fi
 
-#################################################################
-#  Console output
-#################################################################
 echo ""
 echo "------------------------------------------------------------"
 echo "Alert Name: $ALERT_NAME"
@@ -83,9 +58,6 @@ echo "S3 Backup URL: ${AWS_BACKUP}${db}@${DATE}.sql.gz"
 echo "RunDeck Job URL: Click here => $RD_JOB_URL"
 echo "------------------------------------------------------------"
 
-#################################################################
-#  Slack Notification
-#################################################################
 SLACK_MESSAGE=$(cat <<EOF
 *${ALERT_NAME}*
 *Kind:* $KIND
