@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Load secrets
-source /etc/rundeck/secrets/dev_env_vars
+source /etc/rundeck/secrets/env_vars
 
 # Define constants
 FILESTOKEEP=168
